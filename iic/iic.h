@@ -1,10 +1,10 @@
 #ifndef __IIC_H
 #define __IIC_H
 
-#include "STC15F2K60S2.H"
+// must to include header file corresponding to the microcontroller, such as #include "reg52.h"
 
-sbit sda = P2^1;
-sbit scl = P2^0;
+#define sda  // need to bind sda line to this macro definition
+#define scl  // need to bind scl line to this macro definition
 
 /// @brief generate a start condition
 ///
