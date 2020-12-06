@@ -7,12 +7,7 @@
 /// @return none
 void iic_delay(void)
 {
-	unsigned char i;
-
-	_nop_();
-	_nop_();
-	i = 12;
-	while (--i);
+	// base the crystal oscillator of microcontroller to write that code
 }
 
 /// @brief generate a start condition
