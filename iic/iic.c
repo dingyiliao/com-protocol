@@ -1,7 +1,11 @@
 #include "iic.h"
 #include <intrins.h>
 
-void Delay5us()		//@12.000MHz
+/// @brief delay about 5us for some neccessary operation
+///
+/// @param none
+/// @return none
+void iic_delay(void)
 {
 	unsigned char i;
 
@@ -21,9 +25,9 @@ void iic_start(void)
 	// if scl = 0 in the last time, which also has not effect to current communication
 	sda = 1;
 	scl = 1;
-	Delay5us();
+	iic_delay();
 	sda = 0;
-	Delay5us();
+	iic_delay();
 	scl = 0;
 }
 
@@ -37,7 +41,7 @@ void iic_stop(void)
 	// if scl = 0 in the last time, which has not effect to current communication
 	sda = 0;
 	scl = 1;
-	Delay5us();
+	iic_delay();
 	sda = 1;
 }
 
@@ -53,10 +57,10 @@ void iic_write(unsigned char byt)
 	for (idx = 0; idx < 8; idx++)
 	{
 		sda = byt & 0x80 ? 1 : 0;
-		Delay5us();
+		iic_delay();
 		scl = 1;
 		byt <<= 1;
-		Delay5us();
+		iic_delay();
 		scl = 0;
 	}
 	EA = 1;
@@ -71,12 +75,12 @@ bit iic_wait_ack(void)
 	bit ack;
 
 	sda = 1;
-	Delay5us();
+	iic_delay();
 	scl = 1;
-	Delay5us();
+	iic_delay();
 	ack = sda;
 	scl = 0;
-	Delay5us();
+	iic_delay();
 	
 	return ack;
 }
@@ -94,12 +98,12 @@ unsigned char iic_read(void)
 	for (idx = 0; idx < 8; idx++)
 	{
 		scl = 1;
-		Delay5us();
+		iic_delay();
 		byt <<= 1;
 		if (sda)
 			byt |= 0x01;
 		scl = 0;
-		Delay5us();
+		iic_delay();
 	}
 	EA = 1;
 	
@@ -113,12 +117,12 @@ unsigned char iic_read(void)
 void iic_send_ack(bit ack)
 {
 	scl = 0;
-	Delay5us();
+	iic_delay();
 	sda = ack;
-	Delay5us();
+	iic_delay();
 	scl = 1;
-	Delay5us();
+	iic_delay();
 	scl = 0;
 	sda = 1;  	// release bus
-	Delay5us();
+	iic_delay();
 }
