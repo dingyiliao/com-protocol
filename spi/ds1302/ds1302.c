@@ -1,117 +1,84 @@
 #include "stc15f2k60s2.h"
-#include <intrins.h>
 
-#define sclk P17
-#define io P23
-#define rst P13
+extern initialize_ds1302();
+extern ds1302_read(unsigned char);
 
-typedef unsigned char uint8_t;
+unsigned char flag = 0;
+unsigned char buff[7] = { 0 };
+unsigned char seg[] = {
+	0xc0, 0xf9, 0xa4, 0xb0, 0x99, 0x92, 0x82, 0xf8, 0x80, 0x90, 0x88, 0x83, 0xc6, 0xa1, 0x86, 0x8e
+};
 
-void delay_for_4us()
+void cls_led()
+{
+	P0 = 0xff;
+	P2 = (P2 & 0x1f) | 0x80;
+	P2 &= 0x1f;
+}
+
+void sel_disp(unsigned char disp, unsigned char seg)
+{
+	P0 = 0xff;
+	P2 = (P2 & 0x1f) | 0xf0;
+	P2 &= 0x1f;
+	P0 = 0x01 << disp;
+	P2 = (P2 & 0x1f) | 0xc0;
+	P2 &= 0x1f;
+	P0 = seg;
+	P2 = (P2 & 0x1f) | 0xf0;
+	P2 &= 0x1f;
+}
+
+void conf_t0()
+{
+	AUXR |= 0x80;  // set 1T mode
+	TMOD &= 0xf0;
+	TH0 = 0xd1;
+	TL0 = 0x20;
+	TF0 = 0;
+	ET0 = 1;
+	TR0 = 1;
+	EA = 1;
+}
+
+void main()
 {
 	unsigned char i;
-
-	_nop_();
-	_nop_();
-	i = 9;
-	while (--i);
-}
-
-void write_byte(uint8_t byte)
-{
-	uint8_t i;
-	
-	EA = 0;
-	for (i = 0; i < 8; i++)
-	{
-		sclk = 0;
-		io = byte & 0x01;
-		byte >>= 1;
-		sclk = 1;
-	}
-	io = 1;
-	EA = 1;
-}
-
-uint8_t read_byte()
-{
-	uint8_t byte = 0x00;
-	uint8_t i;
-	
-	EA = 0;
-	for (i = 0; i < 8; i++)
-	{
-		sclk = 0;
-		byte >>= 1;
-		if (io)
-			byte |= 0x80;
-		sclk = 1;
-	}
-	EA = 1;
-	
-	return byte;
-}
-
-
-/// @brief write a byte to ds1302 register
-///
-/// @param[in] addr - the address of being writen register
-/// @param[in] byte - a byte to ds1302 register
-/// @return none
-void ds1302_write(uint8_t addr, uint8_t byte)
-{
-	rst = 0;
-	delay_for_4us();
-	sclk = 0;
-	delay_for_4us();
-	rst = 1;
-	delay_for_4us();
-	write_byte(addr);
-	write_byte(byte);
-	rst = 0;
-}
-
-/// @brief read a byte from ds1302 register
-///
-/// @param[in] addr - the address of being read register
-/// @return byte - a byte from ds1302
-uint8_t ds1302_read(uint8_t addr)
-{
-	uint8_t byte;
-	
-	rst = 0;
-	delay_for_4us();
-	sclk = 0;
-	delay_for_4us();
-	rst = 1;
-	delay_for_4us();
-	write_byte(addr);
-	byte = read_byte();
-	rst = 0;
-	
-	return byte;
-}
-
-/// @brief initialize ds1302
-///
-/// @param none
-/// @return none
-void initialize_ds1302()
-{
-	uint8_t temp;
-	uint8_t i;
-	uint8_t addr_inf[] = {
+	unsigned char addr_inf[] = {
 		0x80, 0x82, 0x84, 0x86, 0x88, 0x8a, 0x8c
 	};
-	uint8_t dat_inf[] = {
-		0x00, 0x30, 0x15, 0x16, 0x12, 0x03, 0x20
-	};
 	
-	temp = ds1302_read(0x81);
-	if (temp & 0x80)
+	cls_led();
+	initialize_ds1302();
+	conf_t0();
+	while (1)
 	{
-		ds1302_write(0x8e, 0x00);  // disable write protect
-		for (i = 0; i < 7; i++)
-			ds1302_write(addr_inf[i], dat_inf[i]);
+		if (flag)
+		{
+			flag = 0;
+			for (i = 0; i < 7; i++)
+				buff[i] = ds1302_read(addr_inf[i]);
+		}
+		for (i = 0; i < 6; i++)
+			switch (i)
+			{
+				case 0: sel_disp(i, seg[buff[0] & 0x0f]); break;
+				case 1: sel_disp(i, seg[buff[0] >> 4]); break;
+				case 2: sel_disp(i, seg[buff[1] & 0x0f]); break;
+				case 3: sel_disp(i, seg[buff[1] >> 4]); break;
+				case 4: sel_disp(i, seg[buff[2] & 0x0f]); break;
+				case 5: sel_disp(i, seg[buff[2] >> 4]); break;
+			}
+	}
+}
+
+void t0_routine() interrupt 1
+{
+	static unsigned char idx = 0;
+	
+	if (++idx == 200)
+	{
+		idx = 0;
+		flag = 1;
 	}
 }
