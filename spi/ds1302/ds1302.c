@@ -15,8 +15,9 @@ void ds1302_write_single_byte(uint8_t addr, uint8_t byte)
 {
 	uint8_t i;
 	
-	sclk = 0;
 	rst = 0;
+	_nop_();
+	sclk = 0;
 	_nop_();
 	rst = 1;
 	_nop_();
@@ -34,11 +35,8 @@ void ds1302_write_single_byte(uint8_t addr, uint8_t byte)
 		byte >>= 1;
 		sclk = 1;
 	}
-	sclk = 0;
-	_nop_();
 	rst = 0;
 	_nop_();
-	
 }
 
 uint8_t ds1302_read_single_byte(uint8_t addr)
@@ -47,8 +45,9 @@ uint8_t ds1302_read_single_byte(uint8_t addr)
 		byte = 0x00,
 		i;
 	
-	sclk = 0;
 	rst = 0;
+	_nop_();
+	sclk = 0;
 	_nop_();
 	rst = 1;
 	_nop_();
@@ -67,9 +66,16 @@ uint8_t ds1302_read_single_byte(uint8_t addr)
 			byte |= 0x80;
 		sclk = 1;
 	}
+	rst = 0;
+	_nop_();
+	// used to make ds1302 stable
 	sclk = 0;
 	_nop_();
-	rst = 0;
+	sclk = 1;
+	_nop_();
+	io = 0;
+	_nop_();
+	io = 1;
 	_nop_();
 	
 	return byte;
